@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Map;
 import processing.serial.Serial;
 import SimpleOpenNI.*;
 import processing.core.PApplet;
@@ -8,14 +9,12 @@ import fingertracker.*;
 SimpleOpenNI kinect;
 FingerTracker fingertracker;
 int fingerThreshold = 625;
-  ArrayList<PVector> handPositions,handPositionsSec;
-  PVector currentHand;
-  PVector previousHand;
-  boolean getFirst = false;
-  int firstHand = -100;
-  int secondHand = -100;
-  boolean move = false;
-  Serial serial;
+HashMap<Integer, HandObject> hands;
+boolean getFirst = false;
+int firstHand = -100;
+int secondHand = -100;
+boolean move = false;
+Serial serial;
 int SERIAL_PORT_BAUD_RATE = 9600;
 int rate = 100;
 int[] protocol = {255, 0,100};
@@ -25,6 +24,8 @@ void setup() {
     //String portName = Serial.list()[0];
     //serial = new Serial(this, portName, SERIAL_PORT_BAUD_RATE);
     kinect = new SimpleOpenNI(this);
+    //handsList = new ArrayList<HashMap<Integer, HandObject>>();
+    hands = new HashMap<Integer, HandObject>();
     //fingertracker = new FingerTracker(this, 640, 480);
     pumpController = new PumpController(this);
     if(kinect.isInit()==false){
@@ -39,8 +40,6 @@ void setup() {
     //kinect.enableGesture();
     //fingertracker.setMeltFactor(100);
     kinect.startGesture(SimpleOpenNI.GESTURE_WAVE);
-    handPositions = new ArrayList<PVector>();
-    handPositionsSec = new ArrayList<PVector>();
     /*stroke(255,0,0);
     strokeWeight(2);*/
     background(200,0,0);
@@ -55,19 +54,12 @@ void setup() {
  void draw() {
     kinect.update();
     image(kinect.depthImage(), 0, 0);
-    if(handPositions.size()>=2){
-      previousHand = handPositions.get(handPositions.size()-2);
-      currentHand = handPositions.get(handPositions.size()-1);
-      move = judgeMove(previousHand.z, currentHand.z);
-      drawHandSize(currentHand.x, currentHand.y);
-      pumpController.send(0, rate);
+    for(HandObject handObject : hands.values()){
+      handObject.drawHandSize(handObject.detectMoveIn());
+      if(handObject.detectMoveIn()){
+        pumpController.orderShot(handObject.handId);
+      }
     }
-    /*if(handPositionsSec.size()>=2){
-      previousHand = handPositionsSec.get(handPositionsSec.size()-2);
-      currentHand = handPositionsSec.get(handPositionsSec.size()-1);
-      move = judgeMove(previousHand.z, currentHand.z);
-      drawHandSize(currentHand.x, currentHand.y);
-    }*/
   }
   /*void drawSkeleton(int userId)
   {
@@ -77,36 +69,28 @@ void setup() {
   void onNewHand(SimpleOpenNI curKinect, int handId, PVector pos){
     println("onNewHand -- handId:" + handId + ", pos" + pos);
     kinect.convertRealWorldToProjective(pos,pos);
-    if(getFirst!=true){
-      handPositions.add(pos);
-      getFirst=true;
-      firstHand = handId;
-    }else{
-      handPositionsSec.add(pos);
-      secondHand = handId;
+    if(!hands.containsKey(handId)){ //the id is not inserted
+      HandObject hand =  new HandObject(handId);
+      hand.savePoint(pos);
+      hands.put(handId, hand);
+    }else {
+      println("the id is exist");
     }
   }
   void onTrackedHand(SimpleOpenNI curKinect, int handId, PVector pos){
     //println("onTrackedHand!!!!"+"x: "+pos.x+" y: "+pos.y);
     kinect.convertRealWorldToProjective(pos,pos);
     //println("x: "+pos.x+" y: "+pos.y);
-    if(handId == firstHand)
-      handPositions.add(pos);
-    else if(handId == secondHand)
-      handPositionsSec.add(pos); 
+    if(hands.containsKey(handId)){
+      //insert point
+      hands.get(handId).savePoint(pos);
+
+    }
   }
   void onLostHand(SimpleOpenNI curContext,int handId)
   {
     println("onLostHand - handId: " + handId);
-    if(handId == firstHand){
-      firstHand = -100;
-      getFirst = false;
-      handPositions.clear();
-    }
-    else if (handId == secondHand) {
-      secondHand = -100;
-      handPositionsSec.clear();
-    }
+
     //handPathList.remove(handId);
   }
   void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
@@ -117,7 +101,7 @@ void setup() {
     println("hand stracked: " + handId);
   }
   void drawHandSize(float mid_x, float mid_y){
-      int semiWidth=100/2,semiHeight=200/2;
+    int semiWidth=100/2,semiHeight=200/2;
       if(move){
         stroke(255,255,0);
       }else{

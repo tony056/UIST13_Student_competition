@@ -31,5 +31,18 @@ class PumpController{
 		serial.stop();
 		println("Done");
 	}
-
+	void orderShot(int start){
+		int pumpId = start % 8;
+		int rate = 250;
+		int times = 0;
+		while(times!=3){
+			if(pumpId<8){
+				send(pumpId, rate);
+				pumpId++;
+			}else{
+				pumpId = pumpId % 8;
+			}
+			times++;
+		}
+	}
 }
