@@ -17,19 +17,16 @@ class HandObject{
 	boolean detectMoveIn(){
 		boolean ans = false;
 		int distance = 5;
-		int current_z = handPath.get(handPath.size()-1).z;
-		if(traceLength < 10)
-			traceLength = 0;
-		for(int i = handPath.size() - 2; i >= traceLength; i--){
-			if(handPath.get(i).z - current_z >= distance)
-				ans = true;
-		}
-		return ans;
+		float current_z = handPath.get(handPath.size()-1).z;
+		float prev_z = handPath.get(handPath.size()-2).z;
+		if(prev_z - current_z >= 5)
+			return true;
+		return false;
 	}
-	void drawHandSize(boolean color){
+	void drawHandSize(boolean colorChange){
       int semiWidth=100/2,semiHeight=200/2;
       strokeWeight(10);
-      if(color){
+      if(colorChange){
       	stroke(255, 255, 0);
       }else{
       	stroke(0, 0, 255);

@@ -28,21 +28,21 @@ class PumpController{
 		
 	}
 	void close(){
-		serial.stop();
+		for(int i=0;i<8;i++)
+			send(i, 0);
 		println("Done");
 	}
-	void orderShot(int start){
-		int pumpId = start % 8;
+	void orderShot(){
+		//int pumpId = start % 8;
 		int rate = 250;
 		int times = 0;
-		while(times!=3){
-			if(pumpId<8){
-				send(pumpId, rate);
-				pumpId++;
-			}else{
-				pumpId = pumpId % 8;
-			}
-			times++;
-		}
+		for(int i=0;i<8;i++){
+            if(i>=1)
+              send(i-1, 0);
+            else
+              send(7, 0);
+              send(i, rate);
+              delay(50);
+         }
 	}
 }

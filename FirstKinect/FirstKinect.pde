@@ -8,7 +8,7 @@ import fingertracker.*;
 
 SimpleOpenNI kinect;
 FingerTracker fingertracker;
-int fingerThreshold = 625;
+int fingerThreshold = 0;
 HashMap<Integer, HandObject> hands;
 boolean getFirst = false;
 int firstHand = -100;
@@ -54,10 +54,12 @@ void setup() {
  void draw() {
     kinect.update();
     image(kinect.depthImage(), 0, 0);
-    for(HandObject handObject : hands.values()){
-      handObject.drawHandSize(handObject.detectMoveIn());
-      if(handObject.detectMoveIn()){
-        pumpController.orderShot(handObject.handId);
+    if(hands!=null){
+      for(HandObject handObject : hands.values()){
+        handObject.drawHandSize(handObject.detectMoveIn());
+        if(handObject.detectMoveIn()){
+          pumpController.orderShot();
+        }
       }
     }
   }
@@ -66,6 +68,14 @@ void setup() {
     kinect.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
   }*/
   //hand events
+  void keyPressed(){
+    if(key == '0'){
+      pumpController.close();
+    }else if (key == '1') {
+      for(int i=0;i<8;i++)
+        pumpController.send(i, 150);
+    }
+  }
   void onNewHand(SimpleOpenNI curKinect, int handId, PVector pos){
     println("onNewHand -- handId:" + handId + ", pos" + pos);
     kinect.convertRealWorldToProjective(pos,pos);
@@ -99,30 +109,6 @@ void setup() {
   
     int handId = kinect.startTrackingHand(pos);
     println("hand stracked: " + handId);
-  }
-  void drawHandSize(float mid_x, float mid_y){
-    int semiWidth=100/2,semiHeight=200/2;
-      if(move){
-        stroke(255,255,0);
-      }else{
-        stroke(0,0,255);
-      }
-      strokeWeight(10);
-      line(mid_x - semiWidth, mid_y + semiHeight, mid_x - semiWidth, mid_y - semiHeight);
-      line(mid_x - semiWidth, mid_y - semiHeight, mid_x + semiWidth, mid_y - semiHeight);
-      line(mid_x + semiWidth, mid_y - semiHeight, mid_x + semiWidth, mid_y + semiHeight);
-      line(mid_x + semiWidth, mid_y + semiHeight, mid_x - semiWidth, mid_y + semiHeight);
-  }
-  boolean judgeMove(float prev, float current){
-    println("prev: "+prev+" current: "+current);
-    if(prev - current > 5){
-      rate = 100 + int((current - prev))%254;
-      return true;
-    }
-    else{
-      rate = 50;
-    }
-    return false;
   }
   /*void onCreateHands(int handId,PVector position,float time){
     kinect.convertRealWorldToProjective(position, position);

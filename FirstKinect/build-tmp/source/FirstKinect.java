@@ -4,11 +4,14 @@ import processing.event.*;
 import processing.opengl.*; 
 
 import java.util.ArrayList; 
+import java.util.Map; 
 import processing.serial.Serial; 
 import SimpleOpenNI.*; 
 import processing.core.PApplet; 
 import processing.core.PVector; 
 import fingertracker.*; 
+import processing.core.PVector; 
+import java.util.ArrayList; 
 import processing.serial.Serial; 
 import processing.core.PApplet; 
 
@@ -30,17 +33,16 @@ public class FirstKinect extends PApplet {
 
 
 
+
 SimpleOpenNI kinect;
 FingerTracker fingertracker;
-int fingerThreshold = 625;
-  ArrayList<PVector> handPositions,handPositionsSec;
-  PVector currentHand;
-  PVector previousHand;
-  boolean getFirst = false;
-  int firstHand = -100;
-  int secondHand = -100;
-  boolean move = false;
-  Serial serial;
+int fingerThreshold = 0;
+HashMap<Integer, HandObject> hands;
+boolean getFirst = false;
+int firstHand = -100;
+int secondHand = -100;
+boolean move = false;
+Serial serial;
 int SERIAL_PORT_BAUD_RATE = 9600;
 int rate = 100;
 int[] protocol = {255, 0,100};
@@ -50,6 +52,8 @@ public void setup() {
     //String portName = Serial.list()[0];
     //serial = new Serial(this, portName, SERIAL_PORT_BAUD_RATE);
     kinect = new SimpleOpenNI(this);
+    //handsList = new ArrayList<HashMap<Integer, HandObject>>();
+    hands = new HashMap<Integer, HandObject>();
     //fingertracker = new FingerTracker(this, 640, 480);
     pumpController = new PumpController(this);
     if(kinect.isInit()==false){
@@ -64,8 +68,6 @@ public void setup() {
     //kinect.enableGesture();
     //fingertracker.setMeltFactor(100);
     kinect.startGesture(SimpleOpenNI.GESTURE_WAVE);
-    handPositions = new ArrayList<PVector>();
-    handPositionsSec = new ArrayList<PVector>();
     /*stroke(255,0,0);
     strokeWeight(2);*/
     background(200,0,0);
@@ -79,107 +81,68 @@ public void setup() {
 
  public void draw() {
     kinect.update();
-    
     image(kinect.depthImage(), 0, 0);
-    //fingertracker.setThreshold(fingerThreshold);
-    //if(kinect.isTrackingSkeleton(
-    /*for(int i=1;i<handPositions.size();i++){
-      currentHand = handPositions.get(i);
-      previousHand = handPositions.get(i-1);
-      line(currentHand.x,currentHand.y, previousHand.x, previousHand.y);
-      println("line!!!!!!!!!");
-    }*/
-    /*int[] depthMap = kinect.depthMap();
-    fingertracker.update(depthMap);
-    stroke(0, 255, 0);
-
-    if(prev==0){
-      prev = fingertracker.getNumFingers();
-    }else {
-        prev = current;
-    }
-    current = fingertracker.getNumFingers();
-    println("pre: "+prev+" cur: "+current);
-    for (int k = 0; k < fingertracker.getNumContours(); k++) {
-      //println("haha");  
-      fingertracker.drawContour(k);
-    }
-    noStroke();
-    fill(255,0,0);
-    for (int i = 0; i < fingertracker.getNumFingers(); i++) {
-      PVector position = fingertracker.getFinger(i);
-      ellipse(position.x - 5, position.y -5, 10, 10);
-    }*/
-    /*if(prev - current >=5){
-      rate=0;
-      for(int i=0;i<3;i++){
-        protocol[2]=0;
-        serial.write(protocol[i]);
+    if(hands!=null){
+      for(HandObject handObject : hands.values()){
+        handObject.drawHandSize(handObject.detectMoveIn());
+        if(handObject.detectMoveIn()){
+          pumpController.orderShot();
+          /*if(!move){
+            rate = 0;
+            move = true;
+          }
+          else{
+            rate = 100;
+            move = false;
+          }
+          if(fingerThreshold<8){
+            pumpController.send(fingerThreshold, 150);
+            fingerThreshold++;
+          }*/
+          
+            //pumpController.send(handObject.handId%8, rate);
+        }
       }
-      text(prev - current,10,20);
-    }else if(current - prev >=3){
-      rate=150;
-      for(int i=0;i<3;i++){
-        serial.write(protocol[i]);
-      }
-    }else{
-      protocol[2]=rate;
-      for(int i=0;i<3;i++){
-        serial.write(protocol[i]);
-      }
-    }*/
-    if(handPositions.size()>=2){
-      previousHand = handPositions.get(handPositions.size()-2);
-      currentHand = handPositions.get(handPositions.size()-1);
-      move = judgeMove(previousHand.z, currentHand.z);
-      drawHandSize(currentHand.x, currentHand.y);
-      pumpController.send(0, rate);
     }
-    /*if(handPositionsSec.size()>=2){
-      previousHand = handPositionsSec.get(handPositionsSec.size()-2);
-      currentHand = handPositionsSec.get(handPositionsSec.size()-1);
-      move = judgeMove(previousHand.z, currentHand.z);
-      drawHandSize(currentHand.x, currentHand.y);
-    }*/
   }
   /*void drawSkeleton(int userId)
   {
     kinect.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
   }*/
   //hand events
+  public void keyPressed(){
+    if(key == '0'){
+      pumpController.close();
+    }else if (key == '1') {
+      for(int i=0;i<8;i++)
+        pumpController.send(i, 150);
+    }
+  }
   public void onNewHand(SimpleOpenNI curKinect, int handId, PVector pos){
     println("onNewHand -- handId:" + handId + ", pos" + pos);
     kinect.convertRealWorldToProjective(pos,pos);
-    if(getFirst!=true){
-      handPositions.add(pos);
-      getFirst=true;
-      firstHand = handId;
-    }else{
-      handPositionsSec.add(pos);
-      secondHand = handId;
+    if(!hands.containsKey(handId)){ //the id is not inserted
+      HandObject hand =  new HandObject(handId);
+      hand.savePoint(pos);
+      hands.put(handId, hand);
+    }else {
+      println("the id is exist");
     }
   }
   public void onTrackedHand(SimpleOpenNI curKinect, int handId, PVector pos){
     //println("onTrackedHand!!!!"+"x: "+pos.x+" y: "+pos.y);
     kinect.convertRealWorldToProjective(pos,pos);
     //println("x: "+pos.x+" y: "+pos.y);
-    if(handId == firstHand)
-      handPositions.add(pos);
-    else if(handId == secondHand)
-      handPositionsSec.add(pos); 
+    if(hands.containsKey(handId)){
+      //insert point
+      hands.get(handId).savePoint(pos);
+
+    }
   }
   public void onLostHand(SimpleOpenNI curContext,int handId)
   {
     println("onLostHand - handId: " + handId);
-    if(handId == firstHand){
-      firstHand = -100;
-      getFirst = false;
-      handPositions.clear();
-    }
-    else if (handId == secondHand) {
-      secondHand = -100;
-      handPositionsSec.clear();
-    }
+
     //handPathList.remove(handId);
   }
   public void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
@@ -188,30 +151,6 @@ public void setup() {
   
     int handId = kinect.startTrackingHand(pos);
     println("hand stracked: " + handId);
-  }
-  public void drawHandSize(float mid_x, float mid_y){
-      int semiWidth=100/2,semiHeight=200/2;
-      if(move){
-        stroke(255,255,0);
-      }else{
-        stroke(0,0,255);
-      }
-      strokeWeight(10);
-      line(mid_x - semiWidth, mid_y + semiHeight, mid_x - semiWidth, mid_y - semiHeight);
-      line(mid_x - semiWidth, mid_y - semiHeight, mid_x + semiWidth, mid_y - semiHeight);
-      line(mid_x + semiWidth, mid_y - semiHeight, mid_x + semiWidth, mid_y + semiHeight);
-      line(mid_x + semiWidth, mid_y + semiHeight, mid_x - semiWidth, mid_y + semiHeight);
-  }
-  public boolean judgeMove(float prev, float current){
-    println("prev: "+prev+" current: "+current);
-    if(prev - current > 5){
-      rate = 100 + PApplet.parseInt((current - prev))%254;
-      return true;
-    }
-    else{
-      rate = 50;
-    }
-    return false;
   }
   /*void onCreateHands(int handId,PVector position,float time){
     kinect.convertRealWorldToProjective(position, position);
@@ -250,6 +189,47 @@ public void onVisibleUser(SimpleOpenNI curContext, int userId)
 }
 
 
+class HandObject{
+	int handId = 0;
+	int traceLength = 10;
+	ArrayList<PVector> handPath;
+	HandObject(int Id){
+		handId = Id;
+		handPath = new ArrayList<PVector>();
+	}
+	public int getId(){
+		return handId;
+	}
+	public void savePoint(PVector point){
+		handPath.add(point);
+	}
+	public boolean detectMoveIn(){
+		boolean ans = false;
+		int distance = 5;
+		float current_z = handPath.get(handPath.size()-1).z;
+		float prev_z = handPath.get(handPath.size()-2).z;
+		if(prev_z - current_z >= 5)
+			return true;
+		return false;
+	}
+	public void drawHandSize(boolean colorChange){
+      int semiWidth=100/2,semiHeight=200/2;
+      strokeWeight(10);
+      if(colorChange){
+      	stroke(255, 255, 0);
+      }else{
+      	stroke(0, 0, 255);
+      }
+      float mid_x = handPath.get(handPath.size()-1).x;
+      float mid_y = handPath.get(handPath.size()-1).y;
+      line(mid_x - semiWidth, mid_y + semiHeight, mid_x - semiWidth, mid_y - semiHeight);
+      line(mid_x - semiWidth, mid_y - semiHeight, mid_x + semiWidth, mid_y - semiHeight);
+      line(mid_x + semiWidth, mid_y - semiHeight, mid_x + semiWidth, mid_y + semiHeight);
+      line(mid_x + semiWidth, mid_y + semiHeight, mid_x - semiWidth, mid_y + semiHeight);
+  	}
+}
+
+
 class PumpController{
 	Serial serial;
 	String portName = Serial.list()[0];
@@ -278,10 +258,23 @@ class PumpController{
 		
 	}
 	public void close(){
-		serial.stop();
+		for(int i=0;i<8;i++)
+			send(i, 0);
 		println("Done");
 	}
-
+	public void orderShot(){
+		//int pumpId = start % 8;
+		int rate = 250;
+		int times = 0;
+		for(int i=0;i<8;i++){
+            if(i>=1)
+              send(i-1, 0);
+            else
+              send(7, 0);
+              send(i, rate);
+              delay(50);
+         }
+	}
 }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "FirstKinect" };
