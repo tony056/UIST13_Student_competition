@@ -39,9 +39,7 @@ void setup() {
     strokeWeight(3);
     smooth();
     size(kinect.depthWidth(), kinect.depthHeight());
-    
-    
-  }
+}
 
 void draw() {
   kinect.update();
@@ -108,7 +106,6 @@ void onNewHand(SimpleOpenNI curKinect, int handId, PVector pos){
 void onTrackedHand(SimpleOpenNI curKinect, int handId, PVector pos){
   //println("onTrackedHand!!!!"+"x: "+pos.x+" y: "+pos.y);
   kinect.convertRealWorldToProjective(pos,pos);
-  //println("x: "+pos.x+" y: "+pos.y);
   if(hands.containsKey(handId)){
     //insert point
     hands.get(handId).savePoint(pos);

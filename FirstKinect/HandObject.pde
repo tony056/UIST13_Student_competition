@@ -19,7 +19,7 @@ class HandObject{
 		int distance = 5;
 		float current_z = handPath.get(handPath.size()-1).z;
 		float prev_z = handPath.get(handPath.size()-2).z;
-		if(prev_z - current_z >= 5)
+		if(prev_z - current_z >= distance)
 			return true;
 		return false;
 	}

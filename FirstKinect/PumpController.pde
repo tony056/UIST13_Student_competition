@@ -43,7 +43,6 @@ class PumpController extends Thread{
 		println("Done");
 	}
 	void orderShot(){
-		//int pumpId = start % 8;
 		int rate = 250;
 		int times = 0;
 		for(int i=0;i<8;i++){
