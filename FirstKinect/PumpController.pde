@@ -1,11 +1,23 @@
 import processing.serial.Serial;
 import processing.core.PApplet;
-class PumpController{
+class PumpController extends Thread{
 	Serial serial;
 	String portName = Serial.list()[0];
 	int SERIAL_PORT_BAUD_RATE = 9600;
+	boolean runBit = false;
 	PumpController(PApplet pde){
 		serial = new Serial(pde, portName, SERIAL_PORT_BAUD_RATE);
+		runBit = true;
+	}
+	void start(){ //necessary function for thread
+		super.start();
+	}
+	void run(){ //necessary function for thread. 
+		//if run was done, the thread would finish. 
+		while(runBit){
+
+		}
+		println("pump thread done!");
 	}
 	void send(int pumpId, int rate){
 		if(pumpId >= 0 && pumpId <= 7){
@@ -24,8 +36,6 @@ class PumpController{
 		for(int i = 0;i<3;i++){
 			serial.write(protocol[i]);	
 		}
-		
-		
 	}
 	void close(){
 		for(int i=0;i<8;i++)
@@ -41,8 +51,8 @@ class PumpController{
               send(i-1, 0);
             else
               send(7, 0);
-              send(i, rate);
-              delay(50);
+            send(i, rate);
+            delay(100);
          }
 	}
 }

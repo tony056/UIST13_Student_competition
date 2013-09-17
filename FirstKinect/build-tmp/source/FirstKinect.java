@@ -35,19 +35,11 @@ public class FirstKinect extends PApplet {
 
 
 SimpleOpenNI kinect;
-FingerTracker fingertracker;
-int fingerThreshold = 0;
 HashMap<Integer, HandObject> hands;
-boolean getFirst = false;
-int firstHand = -100;
-int secondHand = -100;
 boolean move = false;
 Serial serial;
-int SERIAL_PORT_BAUD_RATE = 9600;
-int rate = 100;
-int[] protocol = {255, 0,100};
-int prev=0,current=0;
 PumpController pumpController;
+
 public void setup() {
     //String portName = Serial.list()[0];
     //serial = new Serial(this, portName, SERIAL_PORT_BAUD_RATE);
@@ -79,114 +71,111 @@ public void setup() {
     
   }
 
- public void draw() {
-    kinect.update();
-    image(kinect.depthImage(), 0, 0);
-    if(hands!=null){
-      for(HandObject handObject : hands.values()){
-        handObject.drawHandSize(handObject.detectMoveIn());
-        if(handObject.detectMoveIn()){
-          pumpController.orderShot();
-          /*if(!move){
-            rate = 0;
-            move = true;
-          }
-          else{
-            rate = 100;
-            move = false;
-          }
-          if(fingerThreshold<8){
-            pumpController.send(fingerThreshold, 150);
-            fingerThreshold++;
-          }*/
-          
-            //pumpController.send(handObject.handId%8, rate);
-        }
+public void draw() {
+  kinect.update();
+  image(kinect.depthImage(), 0, 0);
+  if(hands!=null){
+    for(HandObject handObject : hands.values()){
+      handObject.drawHandSize(handObject.detectMoveIn());
+      if(handObject.detectMoveIn()){
+        pumpController.orderShot();
       }
     }
   }
+}
   /*void drawSkeleton(int userId)
   {
     kinect.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
   }*/
   //hand events
-  public void keyPressed(){
-    if(key == '0'){
-      pumpController.close();
-    }else if (key == '1') {
-      for(int i=0;i<8;i++)
-        pumpController.send(i, 150);
-    }
+public void keyPressed(){
+  if(key == '0'){
+    pumpController.close();
+  }else if (key == '1') {
+      
+      pumpController.send(1, 254);
+  }else if (key == '2') {
+      
+     pumpController.send(2, 254);
   }
-  public void onNewHand(SimpleOpenNI curKinect, int handId, PVector pos){
-    println("onNewHand -- handId:" + handId + ", pos" + pos);
-    kinect.convertRealWorldToProjective(pos,pos);
-    if(!hands.containsKey(handId)){ //the id is not inserted
-      HandObject hand =  new HandObject(handId);
-      hand.savePoint(pos);
-      hands.put(handId, hand);
-    }else {
-      println("the id is exist");
-    }
+  else if (key == '3') {
+      
+    pumpController.send(3, 254);
   }
-  public void onTrackedHand(SimpleOpenNI curKinect, int handId, PVector pos){
-    //println("onTrackedHand!!!!"+"x: "+pos.x+" y: "+pos.y);
-    kinect.convertRealWorldToProjective(pos,pos);
-    //println("x: "+pos.x+" y: "+pos.y);
-    if(hands.containsKey(handId)){
-      //insert point
-      hands.get(handId).savePoint(pos);
+  else if (key == '4') {
+      
+    pumpController.send(4, 254);
+  }else if (key == '5') {
+      
+    pumpController.send(5, 254);
+  }
+  else if (key == '6') {
+      
+    pumpController.send(6, 254);
+  }
+  else if (key == '7') {
+      
+    pumpController.send(7, 254);
+  }
+  else if (key == '9') {
+      
+    pumpController.send(0, 254);
+  }
+}
+public void onNewHand(SimpleOpenNI curKinect, int handId, PVector pos){
+  println("onNewHand -- handId:" + handId + ", pos" + pos);
+  kinect.convertRealWorldToProjective(pos,pos);
+  if(!hands.containsKey(handId)){ //the id is not inserted
+    HandObject hand =  new HandObject(handId);
+    hand.savePoint(pos);
+    hands.put(handId, hand);
+  }else {
+    println("the id is exist");
+  }
+}
+public void onTrackedHand(SimpleOpenNI curKinect, int handId, PVector pos){
+  //println("onTrackedHand!!!!"+"x: "+pos.x+" y: "+pos.y);
+  kinect.convertRealWorldToProjective(pos,pos);
+  //println("x: "+pos.x+" y: "+pos.y);
+  if(hands.containsKey(handId)){
+    //insert point
+    hands.get(handId).savePoint(pos);
 
-    }
   }
-  public void onLostHand(SimpleOpenNI curContext,int handId)
-  {
-    println("onLostHand - handId: " + handId);
+}
+public void onLostHand(SimpleOpenNI curContext,int handId)
+{
+  println("onLostHand - handId: " + handId);
 
     //handPathList.remove(handId);
-  }
-  public void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
-  {
-    println("onCompletedGesture - gestureType: " + gestureType + ", pos: " + pos);
+}
+public void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
+{
+  println("onCompletedGesture - gestureType: " + gestureType + ", pos: " + pos);
   
-    int handId = kinect.startTrackingHand(pos);
-    println("hand stracked: " + handId);
-  }
-  /*void onCreateHands(int handId,PVector position,float time){
-    kinect.convertRealWorldToProjective(position, position);
-    handPositions.add(position);
-  }
-  void onUpdateHands(int handId, PVector position, float time){
-    kinect.convertRealWorldToProjective(position, position);
-    handPositions.add(position);
-  }
-  void onDestroyHands(int handId, float time){
-    handPositions.clear();
-    kinect.stopTrackingHand(SimpleOpenNI.GESTURE_HAND_RAISE);
-    
-  }
-  void onRecognizeGesture(String strGesture,PVector idPosition,PVector endPosition)
-  {
-    kinect.startTrackingHand(endPosition);
-    kinect.endGesture(SimpleOpenNI.GESTURE_HAND_RAISE);
-  }*/
-  public void onNewUser(SimpleOpenNI curContext, int userId)
-  {
+  int handId = kinect.startTrackingHand(pos);
+  println("hand stracked: " + handId);
+}
+
+// for tracking user skeleton
+/*
+void onNewUser(SimpleOpenNI curContext, int userId)
+{
   println("onNewUser - userId: " + userId);
   println("\tstart tracking skeleton");
   
   curContext.startTrackingSkeleton(userId);
-  }
+}
 
-public void onLostUser(SimpleOpenNI curContext, int userId)
+void onLostUser(SimpleOpenNI curContext, int userId)
 {
   println("onLostUser - userId: " + userId);
 }
 
-public void onVisibleUser(SimpleOpenNI curContext, int userId)
+void onVisibleUser(SimpleOpenNI curContext, int userId)
 {
-  //println("onVisibleUser - userId: " + userId);
-}
+  println("onVisibleUser - userId: " + userId);
+}*/
 
 
 class HandObject{
@@ -230,12 +219,23 @@ class HandObject{
 }
 
 
-class PumpController{
+class PumpController extends Thread{
 	Serial serial;
 	String portName = Serial.list()[0];
 	int SERIAL_PORT_BAUD_RATE = 9600;
+	boolean runBit = false;
 	PumpController(PApplet pde){
 		serial = new Serial(pde, portName, SERIAL_PORT_BAUD_RATE);
+		runBit = true;
+	}
+	public void start(){
+		super.start();
+	}
+	public void run(){
+		while(runBit){
+
+		}
+		println("pump thread done!");
 	}
 	public void send(int pumpId, int rate){
 		if(pumpId >= 0 && pumpId <= 7){
@@ -271,8 +271,8 @@ class PumpController{
               send(i-1, 0);
             else
               send(7, 0);
-              send(i, rate);
-              delay(50);
+            send(i, rate);
+            delay(100);
          }
 	}
 }
