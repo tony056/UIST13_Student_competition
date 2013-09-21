@@ -35,10 +35,10 @@ public class FirstKinect extends PApplet {
 
 
 SimpleOpenNI kinect;
-HashMap<Integer, HandObject> hands;
+HashMap<Integer, HandObject> hands; //HandObject is a class in HandObject.pde
 boolean move = false;
 Serial serial;
-PumpController pumpController;
+PumpController pumpController; //PumpController is a class in PumpController.pde
 
 public void setup() {
     //String portName = Serial.list()[0];
@@ -47,7 +47,7 @@ public void setup() {
     //handsList = new ArrayList<HashMap<Integer, HandObject>>();
     hands = new HashMap<Integer, HandObject>();
     //fingertracker = new FingerTracker(this, 640, 480);
-    pumpController = new PumpController(this);
+    //pumpController = new PumpController(this);
     if(kinect.isInit()==false){
       println("kinect can not find");
       exit();
@@ -67,18 +67,21 @@ public void setup() {
     strokeWeight(3);
     smooth();
     size(kinect.depthWidth(), kinect.depthHeight());
-    
-    
-  }
+}
 
 public void draw() {
   kinect.update();
   image(kinect.depthImage(), 0, 0);
   if(hands!=null){
     for(HandObject handObject : hands.values()){
-      handObject.drawHandSize(handObject.detectMoveIn());
-      if(handObject.detectMoveIn()){
-        pumpController.orderShot();
+      if(handObject.handPath.size()>=5){
+        int prev = handObject.handPath.size()-4;
+        int current = handObject.handPath.size()-1;
+        handObject.drawHandSize(handObject.motionDetect(prev, current));
+        if(handObject.motionDetect(prev, current)!=0){
+          //pumpController.orderShot();
+          text(binary(handObject.motionDetect(prev, current),6),10,20);
+        }
       }
     }
   }
@@ -89,7 +92,7 @@ public void draw() {
   }*/
   //hand events
 public void keyPressed(){
-  if(key == '0'){
+  /*if(key == '0'){
     pumpController.close();
   }else if (key == '1') {
       
@@ -120,7 +123,7 @@ public void keyPressed(){
   else if (key == '9') {
       
     pumpController.send(0, 254);
-  }
+  }*/
 }
 public void onNewHand(SimpleOpenNI curKinect, int handId, PVector pos){
   println("onNewHand -- handId:" + handId + ", pos" + pos);
@@ -136,7 +139,6 @@ public void onNewHand(SimpleOpenNI curKinect, int handId, PVector pos){
 public void onTrackedHand(SimpleOpenNI curKinect, int handId, PVector pos){
   //println("onTrackedHand!!!!"+"x: "+pos.x+" y: "+pos.y);
   kinect.convertRealWorldToProjective(pos,pos);
-  //println("x: "+pos.x+" y: "+pos.y);
   if(hands.containsKey(handId)){
     //insert point
     hands.get(handId).savePoint(pos);
@@ -146,7 +148,10 @@ public void onTrackedHand(SimpleOpenNI curKinect, int handId, PVector pos){
 public void onLostHand(SimpleOpenNI curContext,int handId)
 {
   println("onLostHand - handId: " + handId);
-
+  HandObject handToRemove = hands.get(handId);
+  handToRemove.live = false;
+  hands.remove(handId);
+  println(hands);
     //handPathList.remove(handId);
 }
 public void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
@@ -178,34 +183,96 @@ void onVisibleUser(SimpleOpenNI curContext, int userId)
 }*/
 
 
-class HandObject{
+
+class HandObject extends Thread{
 	int handId = 0;
 	int traceLength = 10;
 	ArrayList<PVector> handPath;
+	int delta_threshold = 5;
+	boolean live = false;
 	HandObject(int Id){
 		handId = Id;
 		handPath = new ArrayList<PVector>();
+		live = true;
 	}
-	public int getId(){
-		return handId;
+	public void start(){
+		super.start();
+	}
+	public void run(){
+		while(live){
+
+		}
+		println(handId+" is dead");
 	}
 	public void savePoint(PVector point){
 		handPath.add(point);
+	}
+	public int motionDetect(int prev, int current){
+		PVector prevVector = handPath.get(prev);
+		PVector currentVector = handPath.get(current);
+		float[] delta = { 0.0f, 0.0f, 0.0f};	
+		String result = "";
+		int value = 0;
+		delta[0] = currentVector.x - prevVector.x;
+		delta[1] = currentVector.y - prevVector.y;
+		delta[2] = currentVector.z - prevVector.z;
+		if(delta[0] > delta_threshold){ //x axis positive movement
+			result+= "x+";
+			value += 2;
+		}
+		else if(delta[0] < 0 && abs(delta[0]) > delta_threshold){ //x axis negative movement
+			result+= "x-";
+			value += 1;
+		}
+		else {
+			result+= "x0";
+		}
+		if(delta[1] > delta_threshold){ //y axis positive movement
+			result+= " y+";
+			value += 8;
+		}
+		else if(delta[1] < 0 && abs(delta[1]) > delta_threshold){ //y axis negative movement
+			result+= " y-";
+			value += 4;
+		}
+		else {
+			result+= " y0";
+		}
+		if(delta[2] > delta_threshold){ //z axis positive movement
+			result+= " z+";
+			value += 32;
+		}
+		else if (delta[2] < 0 && abs(delta[2]) > delta_threshold) { //z axis negative movement
+			result+= " z-";
+			value += 16;
+		}
+		else {
+			result+= " z0";
+		}
+		println(result);
+		return value;
 	}
 	public boolean detectMoveIn(){
 		boolean ans = false;
 		int distance = 5;
 		float current_z = handPath.get(handPath.size()-1).z;
 		float prev_z = handPath.get(handPath.size()-2).z;
-		if(prev_z - current_z >= 5)
+		if(prev_z - current_z >= distance)
 			return true;
 		return false;
 	}
-	public void drawHandSize(boolean colorChange){
+	public void drawHandSize(int colorChange){
       int semiWidth=100/2,semiHeight=200/2;
       strokeWeight(10);
-      if(colorChange){
-      	stroke(255, 255, 0);
+      if(colorChange!=0){
+      	if(colorChange == 32)
+      		stroke(0, 255, 255);
+      	else if (colorChange == 8) 
+      		stroke(0, 255, 0);
+      	else if (colorChange == 2)
+      		stroke(255, 0, 0);
+      	else 
+      		stroke(255, 255, 0);
       }else{
       	stroke(0, 0, 255);
       }
@@ -228,10 +295,11 @@ class PumpController extends Thread{
 		serial = new Serial(pde, portName, SERIAL_PORT_BAUD_RATE);
 		runBit = true;
 	}
-	public void start(){
+	public void start(){ //necessary function for thread
 		super.start();
 	}
-	public void run(){
+	public void run(){ //necessary function for thread. 
+		//if run was done, the thread would finish. 
 		while(runBit){
 
 		}
@@ -254,8 +322,6 @@ class PumpController extends Thread{
 		for(int i = 0;i<3;i++){
 			serial.write(protocol[i]);	
 		}
-		
-		
 	}
 	public void close(){
 		for(int i=0;i<8;i++)
@@ -263,7 +329,6 @@ class PumpController extends Thread{
 		println("Done");
 	}
 	public void orderShot(){
-		//int pumpId = start % 8;
 		int rate = 250;
 		int times = 0;
 		for(int i=0;i<8;i++){

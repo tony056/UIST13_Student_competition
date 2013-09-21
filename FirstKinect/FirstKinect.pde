@@ -19,7 +19,7 @@ void setup() {
     //handsList = new ArrayList<HashMap<Integer, HandObject>>();
     hands = new HashMap<Integer, HandObject>();
     //fingertracker = new FingerTracker(this, 640, 480);
-    pumpController = new PumpController(this);
+    //pumpController = new PumpController(this);
     if(kinect.isInit()==false){
       println("kinect can not find");
       exit();
@@ -46,9 +46,14 @@ void draw() {
   image(kinect.depthImage(), 0, 0);
   if(hands!=null){
     for(HandObject handObject : hands.values()){
-      handObject.drawHandSize(handObject.detectMoveIn());
-      if(handObject.detectMoveIn()){
-        pumpController.orderShot();
+      if(handObject.handPath.size()>=5){
+        int prev = handObject.handPath.size()-4;
+        int current = handObject.handPath.size()-1;
+        handObject.drawHandSize(handObject.motionDetect(prev, current));
+        if(handObject.motionDetect(prev, current)!=0){
+          //pumpController.orderShot();
+          text(binary(handObject.motionDetect(prev, current),6),10,20);
+        }
       }
     }
   }
@@ -59,7 +64,7 @@ void draw() {
   }*/
   //hand events
 void keyPressed(){
-  if(key == '0'){
+  /*if(key == '0'){
     pumpController.close();
   }else if (key == '1') {
       
@@ -90,7 +95,7 @@ void keyPressed(){
   else if (key == '9') {
       
     pumpController.send(0, 254);
-  }
+  }*/
 }
 void onNewHand(SimpleOpenNI curKinect, int handId, PVector pos){
   println("onNewHand -- handId:" + handId + ", pos" + pos);
@@ -115,7 +120,10 @@ void onTrackedHand(SimpleOpenNI curKinect, int handId, PVector pos){
 void onLostHand(SimpleOpenNI curContext,int handId)
 {
   println("onLostHand - handId: " + handId);
-
+  HandObject handToRemove = hands.get(handId);
+  handToRemove.live = false;
+  hands.remove(handId);
+  println(hands);
     //handPathList.remove(handId);
 }
 void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
