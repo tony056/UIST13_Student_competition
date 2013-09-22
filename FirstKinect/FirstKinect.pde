@@ -43,9 +43,20 @@ void setup() {
 void draw() {
   kinect.update();
   image(kinect.depthImage(), 0, 0);
-
+  Style gestureState = Style.NONE;
+  
   gesture.outlineHands();
-  gesture.gestureDetect();
+  gestureState = gesture.gestureDetect( gestureState );
+  
+
+  if( gestureState == Style.IRONMAN ){
+    println("IIIIIIRRRRRRRRRONIIIIIIRRRRRRRRRONIIIIIIRRRRRRRRRON");
+  }else if( gestureState == Style.REL_KAMA ){
+    println("kamehamehakamehamehakamehamehakamehamehakamehamehak");
+  }else if( gestureState == Style.SHOT ){
+    println("SHOTSHOTSHOTSHOTSHOTSHOTSHOTSHOTSHOTSHOTSHOTSHOTSHOT");
+  }
+
 }
   
 

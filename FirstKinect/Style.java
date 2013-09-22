@@ -1,4 +1,4 @@
 enum Style{
-    IRONMAN, NONE
+    SHOT, IRONMAN, PRE_KAMA, REL_KAMA, NONE
 }; 
  

@@ -47,9 +47,9 @@ class Gesture extends Thread
 	}
 
 	//--------------------------------------------
-	Style gestureDetect(){
+	Style gestureDetect( Style preState ){
 		// one or to hands
-		int numOfHand;
+		int numOfHand = 0;
 
 		if(hands.size() > 2 || hands.size() == 0 ){
 			return Style.NONE; 
@@ -59,7 +59,38 @@ class Gesture extends Thread
 			numOfHand = 1;
 		}
 
-					
+		HashMap<Integer, float[]> handMove = getDeltas(6);
+		ArrayList<float[]> delta = new ArrayList<float[]>();
+
+		for( Object key : handMove.keySet() ){
+			delta.add(handMove.get(key));
+		}
+
+		if( numOfHand == 1 ){
+			
+			if(!delta.isEmpty()){
+				println("1111111111:" + delta.get(0)[0] + ',' + delta.get(0)[1] + ',' + delta.get(0)[2] );	
+				
+				if( delta.get(0)[1] > 50 && Math.abs(delta.get(0)[0]) < 5 ){
+					return Style.IRONMAN;
+				}else if( delta.get(0)[2] > 30 && Math.abs(delta.get(0)[0]) < 10 && Math.abs(delta.get(0)[1]) < 10 ){
+					return Style.SHOT;
+				}
+			}
+			
+		}
+		
+		if( numOfHand == 2){
+			
+			if(delta.size() >= 2){
+				println("2222222222-111:" + delta.get(0)[0] + ',' + delta.get(0)[1] + ',' + delta.get(0)[2] );	
+				println("2222222222-222:" + delta.get(1)[0] + ',' + delta.get(1)[1] + ',' + delta.get(1)[2] );	
+
+				//wrong distance
+				double distance = Math.sqrt(Math.pow( delta.get(0)[0] - delta.get(1)[0], 2 ) + Math.pow( delta.get(0)[1] - delta.get(1)[1], 2 ) );
+			}
+
+		}
 
 		return Style.NONE; 
 	}
@@ -79,7 +110,7 @@ class Gesture extends Thread
 
 	//----------------Helper--------------------------
 
-	HashMap<Integer, float[]> getDelta( int threshold ){
+	HashMap<Integer, float[]> getDeltas( int threshold ){
 		HashMap<Integer, float[]> deltas = new HashMap<Integer, float[]>();
 		for(HandObject handObject : hands.values()){
 			if(handObject.handPath.size() >= threshold ){
