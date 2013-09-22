@@ -24,7 +24,7 @@ class HandObject extends Thread{
 	void savePoint(PVector point){
 		handPath.add(point);
 	}
-	int motionDetect(int prev, int current){
+	float[] motionDetect(int prev, int current){
 		PVector prevVector = handPath.get(prev);
 		PVector currentVector = handPath.get(current);
 		float[] delta = { 0.0f, 0.0f, 0.0f};	
@@ -67,7 +67,7 @@ class HandObject extends Thread{
 			result+= " z0";
 		}
 		println(result);
-		return value;
+		return delta;
 	}
 	boolean detectMoveIn(){
 		boolean ans = false;

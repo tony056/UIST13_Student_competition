@@ -1,0 +1,4 @@
+enum Style{
+    IRONMAN, NONE
+}; 
+ 
